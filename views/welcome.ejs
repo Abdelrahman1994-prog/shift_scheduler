@@ -1,0 +1,26 @@
+<%- include('partials/head', { title: 'Welcome' }) %>
+<div class="welcome-wrap" id="welcomeWrap">
+  <div class="welcome-glow" aria-hidden="true"></div>
+  <div class="welcome-content">
+    <img class="welcome-logo" src="/images/qeema-logo.png" alt="Qeema">
+    <div class="welcome-text">
+      <div class="welcome-greeting">Welcome back, <%= currentUser.name %></div>
+      <div class="welcome-sub">Loading your schedule…</div>
+    </div>
+  </div>
+  <a class="welcome-skip" href="/">Skip →</a>
+</div>
+
+<script>
+  (function () {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var delay = reduced ? 400 : 2400;
+    var wrap = document.getElementById('welcomeWrap');
+    setTimeout(function () {
+      wrap.classList.add('welcome-out');
+      setTimeout(function () { window.location.href = '/'; }, reduced ? 0 : 320);
+    }, delay);
+  })();
+</script>
+</body>
+</html>

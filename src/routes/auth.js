@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
     role: user.role,
     must_change_password: !!user.must_change_password
   };
-  res.redirect('/');
+  res.redirect('/welcome');
 });
 
 router.post('/logout', (req, res) => {

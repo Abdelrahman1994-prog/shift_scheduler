@@ -1,0 +1,133 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<% if (canApprove) { %>
+  <div class="page-head">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Week of <span class="mono"><%= weekStart %></span> · overview across all projects.
+        <% if (!isAdmin) { %><span class="pill lead">team lead</span><% } %>
+      </p>
+    </div>
+    <a class="btn primary" href="/schedule">Go to schedule →</a>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:20px;">
+    <div class="iconstat">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.25"/><path d="M3.5 20c0-3.6 2.5-6 5.5-6s5.5 2.4 5.5 6"/><path d="M16 8.5a2.75 2.75 0 1 1 0-5.4"/><path d="M15 14.3c2.5.4 4.5 2.6 4.5 5.7"/></svg></div>
+      <div><div class="num"><%= stats.activeMembers %></div><div class="label">Active members</div></div>
+    </div>
+    <div class="iconstat">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>
+      <div><div class="num"><%= stats.activeProjects %></div><div class="label">Active projects</div></div>
+    </div>
+    <div class="iconstat<%= stats.pendingLeave > 0 ? ' warn' : '' %>">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><path d="M8 14l2 2 4-4"/></svg></div>
+      <div><div class="num"><%= stats.pendingLeave %></div><div class="label">Pending leave requests</div></div>
+    </div>
+    <div class="iconstat<%= stats.pendingSwaps > 0 ? ' warn' : '' %>">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/></svg></div>
+      <div><div class="num"><%= stats.pendingSwaps %></div><div class="label">Pending swap requests</div></div>
+    </div>
+    <div class="iconstat<%= stats.gaps > 0 ? ' warn' : '' %>">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 19.5H3z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.6" r="0.75" fill="currentColor" stroke="none"/></svg></div>
+      <div><div class="num"><%= stats.gaps %></div><div class="label">Unfilled slots this week</div></div>
+    </div>
+    <div class="iconstat">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg></div>
+      <div><div class="num"><%= stats.published %></div><div class="label">Published slots this week</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Upcoming approved leave</h2><a class="btn small" href="/leave">Manage leave →</a></div>
+    <% if (upcomingLeave.length === 0) { %>
+      <div class="empty">No upcoming approved leave on record.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Member</th><th>Type</th><th>From</th><th>To</th></tr></thead>
+        <tbody>
+          <% upcomingLeave.forEach(l => { %>
+            <tr>
+              <td><%= l.member_name %></td>
+              <td><span class="pill <%= l.type %>" style="background:var(--accent-soft);color:var(--accent-ink);"><%= l.type %></span></td>
+              <td class="mono"><%= l.start_date %></td>
+              <td class="mono"><%= l.end_date %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+
+<% } else { %>
+  <div class="page-head">
+    <div>
+      <h1>Welcome, <%= currentUser.name %></h1>
+      <p>Your upcoming shifts, leave requests, and swap invitations.</p>
+    </div>
+    <a class="btn primary" href="/schedule">View full schedule →</a>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h2>Your upcoming shifts</h2></div>
+      <% if (myShifts.length === 0) { %>
+        <div class="empty">No published shifts assigned yet.</div>
+      <% } else { %>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Date</th><th>Project</th><th>Shift</th><th>Time</th></tr></thead>
+          <tbody>
+            <% myShifts.forEach(s => { %>
+              <tr>
+                <td class="mono"><%= s.slot_date %></td>
+                <td><%= s.project_name %></td>
+                <td><span class="pill <%= s.kind %>"><%= KIND_LABELS[s.kind] %></span></td>
+                <td class="mono"><%= s.start_time %>–<%= s.end_time %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table></div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Swap invitations</h2></div>
+      <% if (incomingSwaps.length === 0) { %>
+        <div class="empty">No pending swap requests need your response.</div>
+      <% } else { %>
+        <% incomingSwaps.forEach(sw => { %>
+          <div style="padding:10px 0; border-bottom:1px solid var(--rule);">
+            <div><strong><%= sw.from_name %></strong> wants to swap their <span class="pill <%= sw.kind %>"><%= KIND_LABELS[sw.kind] %></span> on <span class="mono"><%= sw.slot_date %></span> (<%= sw.project_name %>)</div>
+            <form class="inline" method="post" action="/swaps/<%= sw.id %>/accept" style="margin-top:6px;">
+              <button class="btn small primary" type="submit">Accept</button>
+            </form>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Your recent leave requests</h2><a class="btn small" href="/leave">Request leave →</a></div>
+    <% if (myLeave.length === 0) { %>
+      <div class="empty">You haven't submitted any leave requests yet.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Type</th><th>From</th><th>To</th><th>Status</th></tr></thead>
+        <tbody>
+          <% myLeave.forEach(l => { %>
+            <tr>
+              <td><%= l.type %></td>
+              <td class="mono"><%= l.start_date %></td>
+              <td class="mono"><%= l.end_date %></td>
+              <td><span class="pill <%= l.status %>"><%= l.status %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

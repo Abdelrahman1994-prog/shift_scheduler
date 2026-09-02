@@ -1,0 +1,93 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<% const KIND_LABEL = { day: 'Day', oncall: 'On-call', night: 'Overnight' }; %>
+
+<div class="page-head">
+  <div>
+    <h1>On-call now</h1>
+    <p>Who to reach right now if something breaks — no need to dig through the schedule. As of <%= generatedAt %>.</p>
+  </div>
+</div>
+
+<% if (rows.length === 0) { %>
+  <div class="card"><div class="empty">No active project needs on-call or overnight coverage right now.</div></div>
+<% } else { %>
+  <div class="oncall-grid">
+    <% rows.forEach(r => { %>
+      <div class="oncall-card<%= !r.slot ? ' gap' : '' %>">
+        <div class="oncall-card-head">
+          <span class="pill <%= r.kind %>"><%= KIND_LABEL[r.kind] %></span>
+          <span class="oncall-project"><%= r.project_name %></span>
+        </div>
+
+        <% if (!r.slot) { %>
+          <div class="oncall-empty">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 19.5H3z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.6" r="0.75" fill="currentColor" stroke="none"/></svg>
+            No one currently on <%= KIND_LABEL[r.kind].toLowerCase() %>
+          </div>
+        <% } else if (!r.slot.assignee_id) { %>
+          <div class="oncall-empty">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 19.5H3z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.6" r="0.75" fill="currentColor" stroke="none"/></svg>
+            Shift is unfilled
+          </div>
+        <% } else { %>
+          <div class="oncall-person">
+            <div class="oncall-name"><%= r.slot.assignee_name %></div>
+            <div class="oncall-contacts">
+              <% if (r.slot.assignee_phone) { %><a class="oncall-contact" href="tel:<%= r.slot.assignee_phone %>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 4h3.2l1.3 4.5-2 1.3a12 12 0 0 0 5.2 5.2l1.3-2 4.5 1.3v3.2c0 1-.9 1.8-1.9 1.6-6.4-1-11.4-6-12.4-12.4C3.7 4.9 4.5 4 4.5 4z"/></svg><%= r.slot.assignee_phone %></a><% } %>
+              <a class="oncall-contact" href="mailto:<%= r.slot.assignee_email %>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg><%= r.slot.assignee_email %></a>
+              <% if (r.slot.assignee_slack_id) { %><span class="oncall-contact"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none"><path d="M6 15a2 2 0 1 1-2-2h2v2zm1 0a2 2 0 1 1 4 0v5a2 2 0 1 1-4 0v-5zM9 6a2 2 0 1 1 2-2v2H9zm0 1a2 2 0 1 1 0 4H4a2 2 0 1 1 0-4h5zm9 2a2 2 0 1 1 2 2h-2V9zm-1 0a2 2 0 1 1-4 0V4a2 2 0 1 1 4 0v5zm-3 9a2 2 0 1 1-2 2v-2h2zm0-1a2 2 0 1 1 0-4h5a2 2 0 1 1 0 4h-5z"/></svg><%= r.slot.assignee_slack_id %></span><% } %>
+            </div>
+          </div>
+
+          <div class="handover">
+            <div class="handover-label">Handover note</div>
+            <% if (r.slot.handover_note) { %><p class="handover-note"><%= r.slot.handover_note %></p><% } else { %><p class="handover-note empty-note">No handover note yet.</p><% } %>
+            <% if (r.canEdit) { %>
+              <details class="handover-edit">
+                <summary>Edit note</summary>
+                <form method="post" action="/oncall/slot/<%= r.slot.id %>/note">
+                  <textarea name="handover_note" rows="3" placeholder="What's happened, what's open, what the next person should watch for…"><%= r.slot.handover_note || '' %></textarea>
+                  <button class="btn small primary" type="submit">Save note</button>
+                </form>
+              </details>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<div class="card">
+  <div class="card-head"><h2>Recent handoffs</h2></div>
+  <% if (recent.length === 0) { %>
+    <div class="empty">No published shifts have ended in the last two days.</div>
+  <% } else { %>
+    <div class="handoff-list">
+      <% recent.forEach(s => { %>
+        <div class="handoff-row">
+          <div class="handoff-meta">
+            <span class="pill <%= s.kind %>"><%= KIND_LABEL[s.kind] %></span>
+            <span class="oncall-project"><%= s.project_name %></span>
+            <span class="handoff-name"><%= s.assignee_name || 'Unfilled' %></span>
+            <span class="hint mono"><%= s.ended_at %></span>
+          </div>
+          <% if (s.handover_note) { %><p class="handover-note"><%= s.handover_note %></p><% } else { %><p class="handover-note empty-note">No handover note.</p><% } %>
+          <% if (s.canEdit) { %>
+            <details class="handover-edit">
+              <summary>Edit note</summary>
+              <form method="post" action="/oncall/slot/<%= s.id %>/note">
+                <textarea name="handover_note" rows="3" placeholder="What's happened, what's open, what the next person should watch for…"><%= s.handover_note || '' %></textarea>
+                <button class="btn small primary" type="submit">Save note</button>
+              </form>
+            </details>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

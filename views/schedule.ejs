@@ -1,0 +1,184 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<% const KIND_ICON = {
+  day: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2.2M12 18.8V21M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M3 12h2.2M18.8 12H21M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>',
+  oncall: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 0 0-4 4v2.3c0 .9-.3 1.7-.9 2.4L6 14.5h12l-1.1-1.8c-.6-.7-.9-1.5-.9-2.4V8a4 4 0 0 0-4-4z"/><path d="M10.2 17a1.8 1.8 0 0 0 3.6 0"/></svg>',
+  night: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>'
+}; %>
+<% const GAP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 19.5H3z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.6" r="0.75" fill="currentColor" stroke="none"/></svg>'; %>
+
+<div class="page-head">
+  <div>
+    <h1>Weekly schedule</h1>
+    <p>Day shifts, on-call, and overnight coverage across every active project.</p>
+  </div>
+  <div class="actions">
+    <a class="btn small" href="/schedule/export.csv?week=<%= weekStart %>">Export CSV</a>
+    <% if (currentUser.role === 'admin') { %>
+      <form class="inline" method="post" action="/schedule/generate"><input type="hidden" name="week" value="<%= weekStart %>"><button class="btn small" type="submit"><%= isEmpty ? 'Generate draft' : 'Regenerate draft' %></button></form>
+      <% if (hasDraft) { %>
+        <form class="inline" method="post" action="/schedule/delete-draft" onsubmit="return confirm('Delete every draft shift for this week? Published shifts are kept. This cannot be undone.')"><input type="hidden" name="week" value="<%= weekStart %>"><button class="btn small danger" type="submit">Delete draft</button></form>
+      <% } %>
+      <form class="inline" method="post" action="/schedule/publish" onsubmit="return confirm('Publish this week? Members will be notified.')"><input type="hidden" name="week" value="<%= weekStart %>"><button class="btn small primary" type="submit" <%= hasDraft ? '' : 'disabled' %>>Publish week</button></form>
+    <% } %>
+  </div>
+</div>
+
+<% if (!isEmpty) { %>
+  <div class="grid-3" style="margin-bottom:20px;">
+    <div class="iconstat">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/></svg></div>
+      <div><div class="num"><%= totalSlots %></div><div class="label">Total shifts this week</div></div>
+    </div>
+    <div class="iconstat">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></div>
+      <div><div class="num"><%= filledSlots %></div><div class="label">Filled</div></div>
+    </div>
+    <div class="iconstat<%= gapCount > 0 ? ' warn' : '' %>">
+      <div class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21 19.5H3z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.6" r="0.75" fill="currentColor" stroke="none"/></svg></div>
+      <div><div class="num"><%= gapCount %></div><div class="label">Unfilled</div></div>
+    </div>
+  </div>
+  <div class="legend" style="margin:-8px 0 20px;">
+    <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--accent-ink)" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><circle cx="12" cy="12" r="4"/></svg>Day</span>
+    <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--amber)" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M12 4a4 4 0 0 0-4 4v2.3c0 .9-.3 1.7-.9 2.4L6 14.5h12l-1.1-1.8c-.6-.7-.9-1.5-.9-2.4V8a4 4 0 0 0-4-4z"/></svg>On-call</span>
+    <span><svg viewBox="0 0 24 24" width="14" height="14" fill="#dfe6f0" style="vertical-align:-2px;margin-right:4px;"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>Overnight</span>
+    <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--red)" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M12 4 21 19.5H3z"/></svg>Unfilled — needs an assignee</span>
+  </div>
+<% } %>
+
+<% if (currentUser.role === 'admin') { %>
+  <details class="card manual-shift">
+    <summary><h2 style="display:inline;">Add a shift manually</h2> <span class="hint">Use this alongside, or instead of, Generate draft</span></summary>
+    <form method="post" action="/schedule/slot/create" style="margin-top:14px;">
+      <input type="hidden" name="week" value="<%= weekStart %>">
+      <div class="field-row">
+        <div class="field">
+          <label>Project</label>
+          <select name="project_id" required>
+            <option value="">Select…</option>
+            <% activeProjects.forEach(p => { %><option value="<%= p.id %>"><%= p.name %></option><% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Shift type</label>
+          <select name="kind" required>
+            <option value="day">Day</option>
+            <option value="oncall">On-call</option>
+            <option value="night">Overnight</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <select name="slot_date" required>
+            <% dates.forEach(d => { %><option value="<%= d %>"><%= d %></option><% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label>Start <span class="hint">(optional)</span></label>
+          <input type="text" name="start_time" placeholder="e.g. <%= cfg.day_start %>">
+        </div>
+        <div class="field">
+          <label>End <span class="hint">(optional)</span></label>
+          <input type="text" name="end_time" placeholder="e.g. <%= cfg.day_end %>">
+        </div>
+        <div class="field">
+          <label>Assignee <span class="hint">(optional)</span></label>
+          <select name="assignee_id">
+            <option value="">— Unfilled —</option>
+            <% allMembers.forEach(m => { %><option value="<%= m.id %>"><%= m.name %></option><% }) %>
+          </select>
+        </div>
+      </div>
+      <button class="btn primary small" type="submit">Add shift</button>
+    </form>
+  </details>
+
+  <% if (!isEmpty) { %>
+    <details class="card danger-zone manual-shift">
+      <summary><h2 style="display:inline;color:var(--red);">Delete entire week</h2> <span class="hint">Removes every shift for this week, including already-published ones — cannot be undone</span></summary>
+      <form method="post" action="/schedule/delete-week" style="margin-top:14px;" onsubmit="return confirm('This deletes ALL <%= totalSlots %> shift(s) for the week of <%= weekStart %>, including published ones. This cannot be undone. Continue?')">
+        <input type="hidden" name="week" value="<%= weekStart %>">
+        <div class="confirm-row">
+          <label for="delete-week-confirm" style="margin:0;">Type <span class="mono">DELETE</span> to confirm</label>
+          <input type="text" id="delete-week-confirm" name="confirm_text" autocomplete="off" placeholder="DELETE" oninput="document.getElementById('deleteWeekBtn').disabled = this.value.trim().toUpperCase() !== 'DELETE';">
+          <button class="btn danger" id="deleteWeekBtn" type="submit" disabled>Delete entire week</button>
+        </div>
+      </form>
+    </details>
+  <% } %>
+<% } %>
+
+<div class="page-head" style="margin-top:-10px;">
+  <div class="week-nav">
+    <a class="btn small" href="/schedule?week=<%= prevWeek %>">← Prev week</a>
+    <span>Week of <%= weekStart %></span>
+    <a class="btn small" href="/schedule?week=<%= nextWeek %>">Next week →</a>
+  </div>
+  <div class="actions">
+    <% if (!isEmpty) { %>
+      <span class="pill <%= hasPublished && !hasDraft ? 'published' : 'draft' %>"><%= hasPublished && !hasDraft ? 'Published' : 'Draft' %></span>
+    <% } %>
+    <% if (gapCount > 0) { %><span class="pill rejected"><%= gapCount %> unfilled</span><% } %>
+  </div>
+</div>
+
+<% if (isEmpty) { %>
+  <div class="card"><div class="empty">
+    No schedule generated for this week yet.
+    <% if (currentUser.role === 'admin') { %>Click <strong>Generate draft</strong> above to build one from your projects, members, and approved leave.<% } %>
+  </div></div>
+<% } else { %>
+  <div class="table-wrap" style="overflow-x:auto;">
+    <div class="sched-grid" style="min-width:960px;">
+      <div class="sched-head"></div>
+      <% dates.forEach(d => { %>
+        <div class="sched-head">
+          <%= d %>
+          <% if (holidayMap[d]) { %><span class="pill lead" style="margin-left:4px;" title="<%= holidayMap[d] %>">holiday</span><% } %>
+        </div>
+      <% }) %>
+
+      <% grid.forEach(row => { %>
+        <div class="sched-project"><%= row.project.name %></div>
+        <% row.days.forEach(daySlots => { %>
+          <div>
+            <% daySlots.forEach(s => { %>
+              <div class="slot-chip <%= s.assignee_id ? s.kind : 'gap' %>" title="<%= KIND_LABELS[s.kind] %> · <%= s.start_time %>–<%= s.end_time %><%= s.note ? ' — ' + s.note : '' %>">
+                <span class="meta"><%- KIND_ICON[s.kind] %><span><%= KIND_LABELS[s.kind] %> · <%= s.start_time %>–<%= s.end_time %></span></span>
+                <span class="who"><%- s.assignee_id ? '' : GAP_ICON %><%= s.assignee_name || 'Unfilled' %></span>
+                <% if (currentUser.role === 'admin') { %>
+                  <div style="display:flex;gap:4px;align-items:center;">
+                    <form method="post" action="/schedule/slot/<%= s.id %>/assign" class="inline" style="flex:1;min-width:0;"
+                          <% if (s.status === 'published') { %>onsubmit="return confirm('This shift is already published and may have been communicated to the team. Reassign it anyway?')"<% } %>>
+                      <input type="hidden" name="week" value="<%= weekStart %>">
+                      <select name="assignee_id" onchange="this.form.submit()" style="width:100%;">
+                        <option value="">— Unfilled —</option>
+                        <% allMembers.forEach(m => { %>
+                          <option value="<%= m.id %>" <%= s.assignee_id === m.id ? 'selected' : '' %>><%= m.name %></option>
+                        <% }) %>
+                      </select>
+                    </form>
+                    <form method="post" action="/schedule/slot/<%= s.id %>/delete" class="inline"
+                          onsubmit="return confirm(<%- s.status === 'published' ? "'This shift is already published and may have been communicated to the team. Remove it anyway?'" : "'Remove this shift?'" %>)">
+                      <input type="hidden" name="week" value="<%= weekStart %>">
+                      <button class="btn small" type="submit" title="Remove shift" style="padding:2px 6px;font-size:11px;">✕</button>
+                    </form>
+                  </div>
+                <% } else if (s.assignee_id === currentUser.member_id && s.status === 'published') { %>
+                  <form method="post" action="/swaps" style="margin-top:3px;">
+                    <input type="hidden" name="shift_slot_id" value="<%= s.id %>">
+                    <button class="btn small" type="submit" style="padding:2px 8px;font-size:11px;">Request swap</button>
+                  </form>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        <% }) %>
+      <% }) %>
+    </div>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

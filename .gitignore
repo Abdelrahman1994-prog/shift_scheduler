@@ -1,0 +1,9 @@
+node_modules/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/db.json
+data/pre-restore-*.json
+.env
+server.log
+.claude/settings.local.json

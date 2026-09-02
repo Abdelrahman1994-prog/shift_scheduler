@@ -1,0 +1,137 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head">
+  <div>
+    <h1>Settings</h1>
+    <p>These values drive the scheduling engine — change them any time; they apply the next time you generate a draft.</p>
+  </div>
+</div>
+
+<form method="post" action="/settings">
+  <div class="card">
+    <div class="card-head"><h2>Fairness &amp; rest rules</h2></div>
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum rest between shifts (hours)</label>
+        <input type="number" name="rest_hours" value="<%= cfg.rest_hours %>" min="0" required>
+        <div class="hint">No one is scheduled for a shift that starts within this many hours of one of their other shifts ending.</div>
+      </div>
+      <div class="field">
+        <label>Fairness look-back window (weeks)</label>
+        <input type="number" name="fairness_window_weeks" value="<%= cfg.fairness_window_weeks %>" min="1" required>
+        <div class="hint">How far back the generator looks when balancing who's had the most on-call/overnight shifts.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Shift times</h2></div>
+    <p>Default start/end times used when the generator builds slots. On-call and overnight are assumed to run past midnight when the end time is earlier than the start time.</p>
+    <div class="field-row">
+      <div class="field"><label>Day shift start</label><input type="text" name="day_start" value="<%= cfg.day_start %>" placeholder="09:00" required></div>
+      <div class="field"><label>Day shift end</label><input type="text" name="day_end" value="<%= cfg.day_end %>" placeholder="18:00" required></div>
+      <div class="field"><label>On-call start</label><input type="text" name="oncall_start" value="<%= cfg.oncall_start %>" placeholder="18:00" required></div>
+      <div class="field"><label>On-call end</label><input type="text" name="oncall_end" value="<%= cfg.oncall_end %>" placeholder="09:00" required></div>
+      <div class="field"><label>Overnight start</label><input type="text" name="night_start" value="<%= cfg.night_start %>" placeholder="22:00" required></div>
+      <div class="field"><label>Overnight end</label><input type="text" name="night_end" value="<%= cfg.night_end %>" placeholder="06:00" required></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Vacation &amp; leave</h2></div>
+    <div class="field" style="max-width:260px;">
+      <label>Default annual leave days</label>
+      <input type="number" name="default_annual_leave_days" value="<%= cfg.default_annual_leave_days %>" min="0" required>
+      <div class="hint">Used for any member without a leave balance set on their own profile (Members page).</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Notifications</h2></div>
+    <div class="field">
+      <label>Slack incoming webhook URL <span class="hint">(optional)</span></label>
+      <input type="text" name="slack_webhook_url" value="<%= cfg.slack_webhook_url %>" placeholder="https://hooks.slack.com/services/...">
+      <div class="hint">When set, clicking "Publish week" on the schedule page posts the full week's assignments to this webhook.</div>
+    </div>
+    <div class="field">
+      <label>Timezone</label>
+      <input type="text" name="org_timezone" value="<%= cfg.org_timezone %>">
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="btn primary" type="submit">Save settings</button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-head"><h2>Public holidays (Egypt)</h2></div>
+  <p>Fixed-date national holidays (Coptic Christmas, Police Day, Sinai Liberation Day, Labour Day, June 30, 23 July, Armed Forces Day) are added automatically for this year and the next two — day shifts are skipped on these dates; on-call/overnight coverage still runs.</p>
+  <p>Eid al-Fitr, Eid al-Adha, Islamic New Year, Mawlid, and Sham El Nessim move every year and aren't added automatically — add them here once officially announced.</p>
+
+  <form method="post" action="/settings/holidays" class="field-row" style="align-items:flex-end;margin-bottom:16px;">
+    <div class="field" style="margin-bottom:0;"><label>Date</label><input type="date" name="date" required></div>
+    <div class="field" style="margin-bottom:0;"><label>Name</label><input type="text" name="name" placeholder="e.g. Eid al-Fitr" required></div>
+    <div class="field" style="margin-bottom:0;justify-self:start;"><button class="btn small primary" type="submit">Add holiday</button></div>
+  </form>
+
+  <% if (holidays.length === 0) { %>
+    <div class="empty">No upcoming holidays on record.</div>
+  <% } else { %>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Name</th><th>Source</th><th></th></tr></thead>
+      <tbody>
+        <% holidays.forEach(h => { %>
+          <tr>
+            <td class="mono"><%= h.date %></td>
+            <td><%= h.name %></td>
+            <td><span class="pill <%= h.source === 'auto' ? 'draft' : 'lead' %>"><%= h.source %></span></td>
+            <td>
+              <form class="inline" method="post" action="/settings/holidays/<%= h.id %>/delete" onsubmit="return confirm('Remove ' + <%- JSON.stringify(h.name) %> + ' on <%= h.date %>?')">
+                <button class="btn small" type="submit">Remove</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  <% } %>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Backup &amp; restore</h2></div>
+  <p>Everything in the app — members, projects, schedules, leave, swaps, holidays, and settings — lives in one file. Download a copy any time; restoring replaces everything currently in the app with what's in the file.</p>
+  <a class="btn primary small" href="/settings/backup">Download backup (.json)</a>
+
+  <details class="manual-shift" style="margin-top:20px;">
+    <summary><h2 style="display:inline;font-size:15px;">Restore from backup</h2> <span class="hint">Replaces all current data — cannot be undone (your current data is saved to disk first, just in case)</span></summary>
+    <form method="post" action="/settings/restore" enctype="multipart/form-data" style="margin-top:14px;" onsubmit="return confirm('This replaces ALL current data with the uploaded file, and signs everyone out. This cannot be undone from the app (though your current data is saved to disk first). Continue?')">
+      <div class="field-row" style="align-items:flex-end;">
+        <div class="field" style="margin-bottom:0;">
+          <label>Backup file</label>
+          <input type="file" name="backup_file" accept="application/json" required>
+        </div>
+      </div>
+      <div class="confirm-row" style="margin-top:14px;">
+        <label for="restore_confirm_text" style="margin:0;">Type <span class="mono">RESTORE</span> to confirm</label>
+        <input type="text" id="restore_confirm_text" name="confirm_text" autocomplete="off" placeholder="RESTORE" oninput="document.getElementById('restoreBtn').disabled = this.value.trim().toUpperCase() !== 'RESTORE';">
+        <button class="btn danger" id="restoreBtn" type="submit" disabled>Restore from backup</button>
+      </div>
+    </form>
+  </details>
+</div>
+
+<div class="card danger-zone">
+  <div class="card-head"><h2>Danger zone</h2></div>
+  <p>Permanently deletes every member, project, schedule, leave request, and swap request, and removes every login except the one you're using right now. Your app settings above are kept. <strong>This cannot be undone.</strong></p>
+  <form method="post" action="/settings/reset-data" onsubmit="return confirm('This will permanently delete all members, projects, schedules, leave requests, swap requests, and logins (except yours). This cannot be undone. Continue?')">
+    <div class="confirm-row">
+      <label for="confirm_text" style="margin:0;">Type <span class="mono">RESET</span> to confirm</label>
+      <input type="text" id="confirm_text" name="confirm_text" autocomplete="off" placeholder="RESET" oninput="document.getElementById('resetBtn').disabled = this.value.trim().toUpperCase() !== 'RESET';">
+      <button class="btn danger" id="resetBtn" type="submit" disabled>Delete all data &amp; users</button>
+    </div>
+  </form>
+</div>
+
+<%- include('partials/foot') %>

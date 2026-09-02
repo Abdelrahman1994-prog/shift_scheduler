@@ -1,0 +1,124 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head">
+  <div>
+    <h1>Members</h1>
+    <p>Your roster, their project assignments, and on-call / overnight eligibility.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Add a member</h2></div>
+  <form method="post" action="/members">
+    <div class="field-row">
+      <div class="field"><label>Name</label><input type="text" name="name" required></div>
+      <div class="field"><label>Email (used as login)</label><input type="email" name="email" required></div>
+      <div class="field"><label>Slack member ID <span class="hint">(optional)</span></label><input type="text" name="slack_id"></div>
+      <div class="field">
+        <label>Role</label>
+        <select name="role">
+          <option value="member" selected>Member</option>
+          <option value="lead">Team lead (can approve leave &amp; swaps)</option>
+          <option value="admin">Admin (full access)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Annual leave days <span class="hint">(optional)</span></label>
+        <input type="number" name="annual_leave_days" min="0" placeholder="default: <%= defaultAnnualLeaveDays %>">
+      </div>
+    </div>
+    <div class="field">
+      <label>Projects</label>
+      <div class="chip-group">
+        <% allProjects.forEach(p => { %>
+          <input type="checkbox" name="project_ids" value="<%= p.id %>" id="np-<%= p.id %>"><label for="np-<%= p.id %>"><%= p.name %></label>
+        <% }) %>
+      </div>
+      <% if (allProjects.length === 0) { %><div class="hint">Add a project first so you can assign this member to it.</div><% } %>
+    </div>
+    <div class="field-row">
+      <div class="toggle-row"><input type="checkbox" name="can_oncall" id="np-oncall"><label for="np-oncall">Eligible for on-call</label></div>
+      <div class="toggle-row"><input type="checkbox" name="can_overnight" id="np-night"><label for="np-night">Eligible for overnight</label></div>
+    </div>
+    <button class="btn primary" type="submit">Add member</button>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Role</th><th>Projects</th><th>On-call</th><th>Overnight</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      <% members.forEach(m => { %>
+        <tr>
+          <td><strong><%= m.name %></strong></td>
+          <td class="mono"><%= m.email %></td>
+          <td><span class="pill <%= m.role || 'member' %>"><%= m.role || 'member' %></span></td>
+          <td><%= m.projects.map(p => p.name).join(', ') || '—' %></td>
+          <td><%= m.can_oncall ? 'Yes' : '—' %></td>
+          <td><%= m.can_overnight ? 'Yes' : '—' %></td>
+          <td><span class="pill <%= m.active ? 'approved' : 'rejected' %>"><%= m.active ? 'active' : 'inactive' %></span></td>
+          <td>
+            <a class="btn small" href="/profile/view/<%= m.id %>">CV</a>
+            <button class="btn small" type="button" onclick="toggleEdit(<%= m.id %>)">Edit</button>
+            <form class="inline" method="post" action="/members/<%= m.id %>/reset-password" onsubmit="return confirm('Reset password for <%= m.name %>?')">
+              <button class="btn small" type="submit">Reset password</button>
+            </form>
+          </td>
+        </tr>
+        <tr id="edit-<%= m.id %>" class="edit-row" style="display:none;">
+          <td colspan="8">
+            <form method="post" action="/members/<%= m.id %>/edit" style="padding:12px 0;">
+              <div class="field-row">
+                <div class="field"><label>Name</label><input type="text" name="name" value="<%= m.name %>" required></div>
+                <div class="field"><label>Email</label><input type="email" name="email" value="<%= m.email %>" required></div>
+                <div class="field"><label>Slack member ID</label><input type="text" name="slack_id" value="<%= m.slack_id || '' %>"></div>
+                <div class="field">
+                  <label>Role</label>
+                  <select name="role">
+                    <option value="member" <%= (m.role || 'member') === 'member' ? 'selected' : '' %>>Member</option>
+                    <option value="lead" <%= m.role === 'lead' ? 'selected' : '' %>>Team lead (can approve leave &amp; swaps)</option>
+                    <option value="admin" <%= m.role === 'admin' ? 'selected' : '' %>>Admin (full access)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Annual leave days <span class="hint">(optional)</span></label>
+                  <input type="number" name="annual_leave_days" min="0" value="<%= m.annual_leave_days != null ? m.annual_leave_days : '' %>" placeholder="default: <%= defaultAnnualLeaveDays %>">
+                </div>
+              </div>
+              <div class="field">
+                <label>Projects</label>
+                <div class="chip-group">
+                  <% allProjects.forEach(p => { %>
+                    <% const checked = m.projects.some(mp => mp.id === p.id); %>
+                    <input type="checkbox" name="project_ids" value="<%= p.id %>" id="e-<%= m.id %>-<%= p.id %>" <%= checked ? 'checked' : '' %>><label for="e-<%= m.id %>-<%= p.id %>"><%= p.name %></label>
+                  <% }) %>
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="toggle-row"><input type="checkbox" name="can_oncall" id="e-<%= m.id %>-oncall" <%= m.can_oncall ? 'checked' : '' %>><label for="e-<%= m.id %>-oncall">Eligible for on-call</label></div>
+                <div class="toggle-row"><input type="checkbox" name="can_overnight" id="e-<%= m.id %>-night" <%= m.can_overnight ? 'checked' : '' %>><label for="e-<%= m.id %>-night">Eligible for overnight</label></div>
+                <div class="toggle-row"><input type="checkbox" name="active" id="e-<%= m.id %>-active" <%= m.active ? 'checked' : '' %>><label for="e-<%= m.id %>-active">Active</label></div>
+              </div>
+              <button class="btn primary small" type="submit">Save changes</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (members.length === 0) { %>
+        <tr><td colspan="8" class="empty">No members yet — add your first one above.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function toggleEdit(id) {
+    const row = document.getElementById('edit-' + id);
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+  }
+</script>
+
+<%- include('partials/foot') %>

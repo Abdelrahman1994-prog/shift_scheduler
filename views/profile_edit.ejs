@@ -1,0 +1,115 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head">
+  <div>
+    <h1>My profile</h1>
+    <p>Skills, contact details, and work history — this becomes your exportable CV.</p>
+  </div>
+  <% if (member) { %>
+    <div class="actions">
+      <a class="btn small primary" href="/profile/view/<%= member.id %>">View CV →</a>
+    </div>
+  <% } %>
+</div>
+
+<% if (isAdmin) { %>
+  <div class="card">
+    <form method="get" action="/profile" class="field-row" style="margin-bottom:0;align-items:flex-end;">
+      <div class="field" style="margin-bottom:0;">
+        <label>Member</label>
+        <select name="member_id" onchange="this.form.submit()">
+          <% members.forEach(m => { %><option value="<%= m.id %>" <%= member && member.id === m.id ? 'selected' : '' %>><%= m.name %></option><% }) %>
+        </select>
+      </div>
+    </form>
+  </div>
+<% } %>
+
+<% if (!member) { %>
+  <div class="card"><div class="empty">
+    <% if (isAdmin) { %>Add a member first — an admin login isn't tied to a member profile.<% } else { %>No profile is available for your account.<% } %>
+  </div></div>
+<% } else { %>
+  <form method="post" action="/profile">
+    <% if (isAdmin) { %><input type="hidden" name="member_id" value="<%= member.id %>"><% } %>
+    <div class="card">
+      <div class="card-head"><h2>Basic info</h2></div>
+      <div class="field-row">
+        <div class="field"><label>Name</label><input type="text" value="<%= member.name %>" disabled></div>
+        <div class="field"><label>Email</label><input type="text" value="<%= member.email %>" disabled></div>
+        <div class="field">
+          <label>Headline <span class="hint">(optional)</span></label>
+          <input type="text" name="headline" value="<%= member.profile.headline %>" placeholder="e.g. Senior Backend Engineer">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Phone <span class="hint">(optional)</span></label><input type="text" name="phone" value="<%= member.profile.phone %>"></div>
+        <div class="field"><label>Location <span class="hint">(optional)</span></label><input type="text" name="location" value="<%= member.profile.location %>" placeholder="e.g. Cairo, Egypt"></div>
+        <div class="field"><label>LinkedIn / portfolio <span class="hint">(optional)</span></label><input type="text" name="linkedin" value="<%= member.profile.linkedin %>" placeholder="https://linkedin.com/in/..."></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Summary</h2></div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Professional summary <span class="hint">(optional)</span></label>
+        <textarea name="summary" rows="4" placeholder="A couple of sentences about your background and strengths."><%= member.profile.summary %></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Skills</h2></div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Skills <span class="hint">(comma-separated)</span></label>
+        <input type="text" name="skills" value="<%= member.profile.skills.join(', ') %>" placeholder="e.g. Node.js, PostgreSQL, Team leadership">
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="btn primary" type="submit">Save profile</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-head"><h2>Experience</h2></div>
+    <% if (member.profile.history.length === 0) { %>
+      <div class="empty">No experience added yet.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Title</th><th>Organization</th><th>From</th><th>To</th><th>Description</th><th></th></tr></thead>
+        <tbody>
+          <% member.profile.history.forEach(h => { %>
+            <tr>
+              <td><strong><%= h.title %></strong></td>
+              <td><%= h.organization %></td>
+              <td class="mono"><%= h.start || '—' %></td>
+              <td class="mono"><%= h.end || 'Present' %></td>
+              <td><%= h.description || '—' %></td>
+              <td>
+                <form class="inline" method="post" action="/profile/history/<%= h.id %>/delete" onsubmit="return confirm('Remove this experience entry?')">
+                  <% if (isAdmin) { %><input type="hidden" name="member_id" value="<%= member.id %>"><% } %>
+                  <button class="btn small" type="submit">Remove</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+
+    <form method="post" action="/profile/history" style="margin-top:16px;">
+      <% if (isAdmin) { %><input type="hidden" name="member_id" value="<%= member.id %>"><% } %>
+      <div class="field-row">
+        <div class="field"><label>Title</label><input type="text" name="title" placeholder="e.g. Backend Developer" required></div>
+        <div class="field"><label>Organization</label><input type="text" name="organization" placeholder="e.g. Qeema" required></div>
+        <div class="field"><label>From <span class="hint">(optional)</span></label><input type="month" name="start"></div>
+        <div class="field"><label>To <span class="hint">(blank = present)</span></label><input type="month" name="end"></div>
+      </div>
+      <div class="field"><label>Description <span class="hint">(optional)</span></label><input type="text" name="description" maxlength="300"></div>
+      <button class="btn small primary" type="submit">Add experience</button>
+    </form>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

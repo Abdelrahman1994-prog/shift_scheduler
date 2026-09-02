@@ -1,0 +1,68 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head no-print">
+  <div>
+    <h1><%= member.name %> — CV</h1>
+    <p>Read-only view — this is what gets printed / exported as a PDF.</p>
+  </div>
+  <div class="actions">
+    <% if (canEdit) { %><a class="btn small" href="/profile<%= currentUser.role === 'admin' ? '?member_id=' + member.id : '' %>">← Edit</a><% } %>
+    <button class="btn small primary" type="button" onclick="window.print()">Print / Export as PDF</button>
+  </div>
+</div>
+
+<% const skills = member.profile.skills || []; %>
+<% const history = member.profile.history || []; %>
+<% const hasContent = member.profile.headline || member.profile.summary || skills.length || history.length; %>
+
+<div class="cv-sheet" id="cvSheet">
+  <div class="cv-header">
+    <h1 class="cv-name"><%= member.name %></h1>
+    <% if (member.profile.headline) { %><p class="cv-headline"><%= member.profile.headline %></p><% } %>
+    <div class="cv-contact">
+      <span><%= member.email %></span>
+      <% if (member.profile.phone) { %><span><%= member.profile.phone %></span><% } %>
+      <% if (member.profile.location) { %><span><%= member.profile.location %></span><% } %>
+      <% if (member.profile.linkedin) { %><span><a href="<%= member.profile.linkedin %>" target="_blank" rel="noopener"><%= member.profile.linkedin %></a></span><% } %>
+    </div>
+  </div>
+
+  <% if (!hasContent) { %>
+    <div class="empty no-print">This profile hasn't been filled in yet<% if (canEdit) { %> — <a href="/profile<%= currentUser.role === 'admin' ? '?member_id=' + member.id : '' %>">add your details</a><% } %>.</div>
+  <% } %>
+
+  <% if (member.profile.summary) { %>
+    <div class="cv-section">
+      <h2>Summary</h2>
+      <p><%= member.profile.summary %></p>
+    </div>
+  <% } %>
+
+  <% if (skills.length > 0) { %>
+    <div class="cv-section">
+      <h2>Skills</h2>
+      <div class="cv-skills">
+        <% skills.forEach(s => { %><span class="cv-skill"><%= s %></span><% }) %>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (history.length > 0) { %>
+    <div class="cv-section">
+      <h2>Experience</h2>
+      <% history.forEach(h => { %>
+        <div class="cv-history-item">
+          <div class="cv-history-head">
+            <strong><%= h.title %></strong>
+            <span class="cv-history-dates mono"><%= h.start || '—' %> – <%= h.end || 'Present' %></span>
+          </div>
+          <div class="cv-history-org"><%= h.organization %></div>
+          <% if (h.description) { %><p><%= h.description %></p><% } %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

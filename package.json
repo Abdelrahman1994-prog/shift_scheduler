@@ -1,0 +1,25 @@
+{
+  "name": "shift-scheduler",
+  "version": "1.0.0",
+  "description": "Weekly shift, on-call, overnight and vacation scheduler for application-support teams",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-pg-simple": "^10.0.0",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
+    "express-session": "^1.18.0",
+    "multer": "^2.3.0",
+    "pg": "^8.23.0"
+  }
+}

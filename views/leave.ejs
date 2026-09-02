@@ -1,0 +1,209 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head">
+  <div>
+    <h1>Vacation &amp; leave</h1>
+    <p>Approved leave automatically blocks a member from being scheduled — the generator checks this before it assigns anyone.</p>
+  </div>
+  <div class="actions">
+    <a class="btn small" href="/leave/balance<%= canApprove && members.length > 0 ? '?member_id=' + members[0].id : '' %>">Leave balance report →</a>
+  </div>
+</div>
+
+<% if (canApprove && pending.length > 0) { %>
+  <div class="card">
+    <div class="card-head"><h2>Pending requests</h2><span class="pill pending"><%= pending.length %> waiting</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Member</th><th>Type</th><th>From</th><th>To</th><th>Reason</th><th></th></tr></thead>
+      <tbody>
+        <% pending.forEach(p => { %>
+          <tr>
+            <td><%= p.member_name %></td>
+            <td><%= p.type %></td>
+            <td class="mono"><%= p.start_date %></td>
+            <td class="mono"><%= p.end_date %></td>
+            <td><%= p.reason || '—' %></td>
+            <td class="actions">
+              <form class="inline" method="post" action="/leave/<%= p.id %>/approve"><button class="btn small primary" type="submit">Approve</button></form>
+              <form class="inline" method="post" action="/leave/<%= p.id %>/reject"><button class="btn small danger" type="submit">Reject</button></form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  </div>
+<% } %>
+
+<div class="card">
+  <div class="card-head"><h2>Request leave</h2></div>
+  <form method="post" action="/leave">
+    <div class="field-row">
+      <% if (canApprove) { %>
+        <div class="field">
+          <label>Member</label>
+          <select name="member_id" required>
+            <% members.forEach(m => { %><option value="<%= m.id %>" <%= currentUser.member_id === m.id ? 'selected' : '' %>><%= m.name %></option><% }) %>
+          </select>
+        </div>
+      <% } %>
+      <div class="field"><label>Type</label>
+        <select name="type">
+          <option value="vacation">Vacation</option>
+          <option value="sick">Sick</option>
+          <option value="personal">Personal</option>
+        </select>
+      </div>
+      <div class="field"><label>From</label><input type="date" name="start_date" required></div>
+      <div class="field"><label>To</label><input type="date" name="end_date" required></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Reason <span class="hint">(optional)</span></label>
+        <select name="reason" id="leave-reason-select" onchange="document.getElementById('leave-reason-other-row').style.display = this.value === 'Other' ? '' : 'none';">
+          <option value="">— None —</option>
+          <% leaveReasons.forEach(r => { %><option value="<%= r %>"><%= r %></option><% }) %>
+          <option value="Other">Other (specify)</option>
+        </select>
+      </div>
+      <div class="field" id="leave-reason-other-row" style="display:none;">
+        <label>Specify reason</label>
+        <input type="text" name="reason_other" maxlength="200">
+      </div>
+    </div>
+    <button class="btn primary" type="submit">Submit request</button>
+    <span class="hint" style="margin-left:8px;">An admin or team lead will need to approve this before it blocks the schedule.</span>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Team leave board</h2>
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <div class="toggle-row">
+        <input type="checkbox" id="showAllMembersToggle">
+        <label for="showAllMembersToggle">Show everyone (incl. no leave)</label>
+      </div>
+      <div class="week-nav">
+        <a class="btn small" href="/leave?month=<%= prevMonth %>">← Prev</a>
+        <span><%= month %></span>
+        <a class="btn small" href="/leave?month=<%= nextMonth %>">Next →</a>
+      </div>
+    </div>
+  </div>
+  <% if (members.length === 0) { %>
+    <div class="empty">No active members yet.</div>
+  <% } else { %>
+    <div class="timeline-wrap">
+      <div class="timeline-board" style="--tl-days:<%= dayMeta.length %>;">
+        <div class="timeline-headrow">
+          <div class="timeline-namehead">Member</div>
+          <div class="timeline-daygrid-head">
+            <% dayMeta.forEach(d => { %>
+              <div class="timeline-daycell<%= d.isWeekend ? ' weekend' : '' %>" title="<%= d.holiday || '' %>" style="<%= d.holiday ? 'color:var(--amber);font-weight:700;' : '' %>"><%= String(d.day).padStart(2, '0') %></div>
+            <% }) %>
+          </div>
+          <div class="timeline-totalhead">Total</div>
+        </div>
+        <% timelineRows.forEach((row, idx) => { %>
+          <div class="timeline-row<%= row.total === 0 ? ' muted' : '' %>"<% if (row.total === 0) { %> data-empty="1" style="display:none;"<% } %>>
+            <div class="timeline-name"><%= row.member.name %></div>
+            <div class="timeline-track">
+              <div class="timeline-track-grid">
+                <% dayMeta.forEach(d => { %><div class="col<%= d.isWeekend ? ' weekend' : '' %>"></div><% }) %>
+              </div>
+              <% if (todayDay) { %>
+                <div class="timeline-today-line" style="left:<%= (((todayDay - 1) / dayMeta.length) * 100).toFixed(3) %>%;">
+                  <% if (idx === 0) { %><span class="timeline-today-tag">Today</span><% } %>
+                </div>
+              <% } %>
+              <% row.bars.forEach(b => { %>
+                <% const spanDays = b.endDay - b.startDay + 1; const narrow = spanDays <= 2; %>
+                <div class="timeline-bar <%= b.type %><%= b.status === 'pending' ? ' pending' : '' %><%= narrow ? ' narrow' : '' %><%= b.continuesAfter ? ' continues' : '' %>"
+                     style="left:<%= (((b.startDay - 1) / dayMeta.length) * 100).toFixed(3) %>%; width:<%= ((spanDays / dayMeta.length) * 100).toFixed(3) %>%;"
+                     title="<%= row.member.name %> — <%= b.type %> (<%= b.status %>), <%= b.rangeLabel %>">
+                  <span class="label-text"><%= b.type %></span><span class="range"><%= b.rangeLabel %></span>
+                </div>
+              <% }) %>
+            </div>
+            <div class="timeline-total" style="<%= row.total > 0 ? 'color:var(--accent-ink);' : '' %>"><%= row.total || '' %></div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--accent);"></span>Vacation</span>
+      <span><span class="sw" style="background:var(--red);"></span>Sick</span>
+      <span><span class="sw" style="background:var(--amber);"></span>Personal</span>
+      <span><span class="sw timeline-sw-pending"></span>Pending approval</span>
+      <span><span class="sw" style="background:var(--weekend-tint); border:1px solid var(--rule-strong);"></span>Weekend (Fri/Sat)</span>
+      <span><span class="sw" style="background:var(--red); width:2px;"></span>Today</span>
+      <span>› continues past month end</span>
+    </div>
+  <% } %>
+</div>
+
+<script>
+  (function () {
+    var toggle = document.getElementById('showAllMembersToggle');
+    if (!toggle) return;
+    toggle.addEventListener('change', function () {
+      document.querySelectorAll('.timeline-row[data-empty="1"]').forEach(function (r) {
+        r.style.display = toggle.checked ? 'grid' : 'none';
+      });
+    });
+  })();
+</script>
+
+<div class="card">
+  <div class="card-head"><h2>Vacation plan — all members</h2><span class="hint"><%= vacationPlan.length %> current &amp; upcoming</span></div>
+  <% if (vacationPlan.length === 0) { %>
+    <div class="empty">No current or upcoming leave on record.</div>
+  <% } else { %>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Member</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead>
+      <tbody>
+        <% vacationPlan.forEach(r => { %>
+          <tr>
+            <td><%= r.member_name %></td>
+            <td><span class="pill <%= r.type %>" style="background:var(--accent-soft);color:var(--accent-ink);"><%= r.type %></span></td>
+            <td class="mono"><%= r.start_date %></td>
+            <td class="mono"><%= r.end_date %></td>
+            <td class="mono"><%= r.days %></td>
+            <td><span class="pill <%= r.status %>"><%= r.status %></span></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  <% } %>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Your requests</h2></div>
+  <% if (myRequests.length === 0) { %>
+    <div class="empty">No requests yet.</div>
+  <% } else { %>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>From</th><th>To</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        <% myRequests.forEach(r => { %>
+          <tr>
+            <td><%= r.type %></td>
+            <td class="mono"><%= r.start_date %></td>
+            <td class="mono"><%= r.end_date %></td>
+            <td><span class="pill <%= r.status %>"><%= r.status %></span></td>
+            <td>
+              <% if (r.status === 'pending' || r.status === 'approved') { %>
+                <form class="inline" method="post" action="/leave/<%= r.id %>/cancel" onsubmit="return confirm('Cancel this leave request?')">
+                  <button class="btn small" type="submit">Cancel</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table></div>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,89 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head">
+  <div>
+    <h1>Projects</h1>
+    <p>What each project needs covered — day staffing, on-call, overnight — and which days of the week it runs.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2>Add a project</h2></div>
+  <form method="post" action="/projects">
+    <div class="field-row">
+      <div class="field"><label>Project name</label><input type="text" name="name" required></div>
+      <div class="field"><label>Minimum staff per day shift</label><input type="number" name="min_staff_day" value="1" min="1"></div>
+    </div>
+    <div class="field-row">
+      <div class="toggle-row"><input type="checkbox" name="needs_oncall" id="np-oncall"><label for="np-oncall">Needs an on-call rotation</label></div>
+      <div class="toggle-row"><input type="checkbox" name="needs_overnight" id="np-night"><label for="np-night">Needs overnight coverage</label></div>
+    </div>
+    <div class="field">
+      <label>Day-shift coverage days <span class="hint">(on-call / overnight, when enabled, run every day regardless)</span></label>
+      <div class="day-picker">
+        <% DAY_NAMES.forEach((d, i) => { %>
+          <input type="checkbox" name="coverage_days" value="<%= i %>" id="np-day-<%= i %>" checked><label for="np-day-<%= i %>"><%= d %></label>
+        <% }) %>
+      </div>
+    </div>
+    <button class="btn primary" type="submit">Add project</button>
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead><tr><th>Project</th><th>Members</th><th>Day coverage</th><th>On-call</th><th>Overnight</th><th>Min/day</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <% projects.forEach(p => { %>
+        <% const days = p.coverage_days.split(',').map(Number); %>
+        <tr>
+          <td><strong><%= p.name %></strong></td>
+          <td><%= p.memberCount %></td>
+          <td><%= days.length === 7 ? 'Every day' : days.map(d => DAY_NAMES[d]).join(', ') %></td>
+          <td><%= p.needs_oncall ? 'Yes' : '—' %></td>
+          <td><%= p.needs_overnight ? 'Yes' : '—' %></td>
+          <td><%= p.min_staff_day %></td>
+          <td><span class="pill <%= p.active ? 'approved' : 'rejected' %>"><%= p.active ? 'active' : 'inactive' %></span></td>
+          <td><button class="btn small" type="button" onclick="toggleEdit(<%= p.id %>)">Edit</button></td>
+        </tr>
+        <tr id="edit-<%= p.id %>" style="display:none;">
+          <td colspan="8">
+            <form method="post" action="/projects/<%= p.id %>/edit" style="padding:12px 0;">
+              <div class="field-row">
+                <div class="field"><label>Project name</label><input type="text" name="name" value="<%= p.name %>" required></div>
+                <div class="field"><label>Minimum staff per day shift</label><input type="number" name="min_staff_day" value="<%= p.min_staff_day %>" min="1"></div>
+              </div>
+              <div class="field-row">
+                <div class="toggle-row"><input type="checkbox" name="needs_oncall" id="e-<%= p.id %>-oncall" <%= p.needs_oncall ? 'checked' : '' %>><label for="e-<%= p.id %>-oncall">Needs an on-call rotation</label></div>
+                <div class="toggle-row"><input type="checkbox" name="needs_overnight" id="e-<%= p.id %>-night" <%= p.needs_overnight ? 'checked' : '' %>><label for="e-<%= p.id %>-night">Needs overnight coverage</label></div>
+                <div class="toggle-row"><input type="checkbox" name="active" id="e-<%= p.id %>-active" <%= p.active ? 'checked' : '' %>><label for="e-<%= p.id %>-active">Active</label></div>
+              </div>
+              <div class="field">
+                <label>Day-shift coverage days</label>
+                <div class="day-picker">
+                  <% DAY_NAMES.forEach((d, i) => { %>
+                    <input type="checkbox" name="coverage_days" value="<%= i %>" id="e-<%= p.id %>-day-<%= i %>" <%= days.includes(i) ? 'checked' : '' %>><label for="e-<%= p.id %>-day-<%= i %>"><%= d %></label>
+                  <% }) %>
+                </div>
+              </div>
+              <button class="btn primary small" type="submit">Save changes</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (projects.length === 0) { %>
+        <tr><td colspan="8" class="empty">No projects yet — add your first one above.</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function toggleEdit(id) {
+    const row = document.getElementById('edit-' + id);
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+  }
+</script>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,37 @@
+  </main>
+</div>
+<script>
+  (function () {
+    var toggleBtn = document.getElementById('navToggle');
+    var overlay = document.getElementById('navOverlay');
+
+    function closeNav() {
+      document.body.classList.remove('nav-open');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+    }
+    function openNav() {
+      document.body.classList.add('nav-open');
+      if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+    }
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        document.body.classList.contains('nav-open') ? closeNav() : openNav();
+      });
+    }
+    if (overlay) overlay.addEventListener('click', closeNav);
+
+    var themeBtn = document.getElementById('themeToggle');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        var root = document.documentElement;
+        var current = root.getAttribute('data-theme');
+        var isDark = current ? current === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var next = isDark ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+      });
+    }
+  })();
+</script>
+</body>
+</html>

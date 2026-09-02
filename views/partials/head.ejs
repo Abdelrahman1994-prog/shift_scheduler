@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof title !== 'undefined' ? title + ' · Shift Scheduler' : 'Shift Scheduler' %></title>
+  <link rel="stylesheet" href="/styles.css">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+<% // Decorative background: a glowing clock dissolving into pixels — evokes
+   // "time / shifts" without needing an image asset. Pure decoration, no
+   // data dependency, so it's self-contained here rather than threaded
+   // through every route's res.render() call.
+   const bgCx = 660, bgCy = 190, bgR = 120;
+   const bgTicks = Array.from({ length: 12 }, (_, i) => {
+     const a = (i * 30 - 90) * Math.PI / 180;
+     return {
+       x1: bgCx + Math.cos(a) * (bgR - 12), y1: bgCy + Math.sin(a) * (bgR - 12),
+       x2: bgCx + Math.cos(a) * bgR, y2: bgCy + Math.sin(a) * bgR
+     };
+   });
+   const bgPixels = [];
+   for (let ring = 0; ring < 5; ring++) {
+     const dist = bgR + 14 + ring * 27;
+     const count = Math.round(9 - ring * 1.3);
+     for (let i = 0; i < count; i++) {
+       const a = (Math.random() * 80 - 150) * Math.PI / 180;
+       const jitter = (Math.random() - 0.5) * 26;
+       bgPixels.push({
+         x: bgCx + Math.cos(a) * (dist + jitter),
+         y: bgCy + Math.sin(a) * (dist + jitter) * 0.65,
+         size: Math.max(2, 7 - ring * 1.2 + Math.random() * 3),
+         opacity: Math.max(0.08, 0.5 - ring * 0.09)
+       });
+     }
+   }
+%>
+<svg class="bg-decor" viewBox="0 0 900 700" preserveAspectRatio="xMaxYMin slice" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="bgGlow" cx="72%" cy="24%" r="60%">
+      <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="700" fill="url(#bgGlow)"/>
+  <g stroke="var(--accent)" fill="none" stroke-linecap="round">
+    <circle cx="<%= bgCx %>" cy="<%= bgCy %>" r="<%= bgR %>" stroke-width="3" opacity="0.55"/>
+    <% bgTicks.forEach(t => { %><line x1="<%= t.x1.toFixed(1) %>" y1="<%= t.y1.toFixed(1) %>" x2="<%= t.x2.toFixed(1) %>" y2="<%= t.y2.toFixed(1) %>" stroke-width="2" opacity="0.4"/><% }) %>
+    <line x1="<%= bgCx %>" y1="<%= bgCy %>" x2="<%= (bgCx - 48).toFixed(1) %>" y2="<%= (bgCy - 27).toFixed(1) %>" stroke-width="4" opacity="0.65"/>
+    <line x1="<%= bgCx %>" y1="<%= bgCy %>" x2="<%= (bgCx + 74).toFixed(1) %>" y2="<%= (bgCy - 42).toFixed(1) %>" stroke-width="4" opacity="0.65"/>
+  </g>
+  <circle cx="<%= bgCx %>" cy="<%= bgCy %>" r="4" fill="var(--accent)" opacity="0.7"/>
+  <g fill="var(--accent)">
+    <% bgPixels.forEach(p => { %><rect x="<%= (p.x - p.size / 2).toFixed(1) %>" y="<%= (p.y - p.size / 2).toFixed(1) %>" width="<%= p.size.toFixed(1) %>" height="<%= p.size.toFixed(1) %>" opacity="<%= p.opacity.toFixed(2) %>" rx="1"/><% }) %>
+  </g>
+</svg>

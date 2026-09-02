@@ -1,0 +1,97 @@
+<%- include('partials/head', { title: title }) %>
+<%- include('partials/nav', { active: active, currentUser: currentUser, flash: flash }) %>
+
+<div class="page-head">
+  <div>
+    <h1>Swap requests</h1>
+    <p>Post a shift you can't cover, or pick up one from a teammate. Every accept is re-checked against project eligibility, leave, and rest rules.</p>
+  </div>
+</div>
+
+<% function swapRow(sw, showAccept) { %>
+  <tr>
+    <td class="mono"><%= sw.slot_date %></td>
+    <td><%= sw.project_name %></td>
+    <td><span class="pill <%= sw.kind %>"><%= KIND_LABELS[sw.kind] %></span></td>
+    <td><%= sw.from_name %></td>
+    <td><%= sw.to_name || '—' %></td>
+    <td><span class="pill <%= sw.status %>"><%= sw.status %></span></td>
+    <td class="actions">
+      <% if (showAccept) { %>
+        <form class="inline" method="post" action="/swaps/<%= sw.id %>/accept"><button class="btn small primary" type="submit">Accept</button></form>
+      <% } %>
+    </td>
+  </tr>
+<% } %>
+
+<% if (!canApprove) { %>
+  <div class="card">
+    <div class="card-head"><h2>Open for you to pick up</h2></div>
+    <% if (openToAccept.length === 0) { %>
+      <div class="empty">No swap requests waiting on you right now.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Project</th><th>Shift</th><th>From</th><th>To</th><th>Status</th><th></th></tr></thead>
+        <tbody><% openToAccept.forEach(sw => swapRow(sw, true)) %></tbody>
+      </table></div>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h2>Your requests</h2></div>
+    <% if (mine.length === 0) { %>
+      <div class="empty">You haven't requested any swaps. Find your shift on the <a href="/schedule">schedule page</a> to request one.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Project</th><th>Shift</th><th>From</th><th>To</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% mine.forEach(sw => { %>
+            <tr>
+              <td class="mono"><%= sw.slot_date %></td>
+              <td><%= sw.project_name %></td>
+              <td><span class="pill <%= sw.kind %>"><%= KIND_LABELS[sw.kind] %></span></td>
+              <td><%= sw.from_name %></td>
+              <td><%= sw.to_name || '—' %></td>
+              <td><span class="pill <%= sw.status %>"><%= sw.status %></span></td>
+              <td>
+                <% if (sw.status === 'pending') { %>
+                  <form class="inline" method="post" action="/swaps/<%= sw.id %>/cancel"><button class="btn small" type="submit">Cancel</button></form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="card-head"><h2>All swap requests</h2></div>
+    <% if (all.length === 0) { %>
+      <div class="empty">No swap requests yet.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Project</th><th>Shift</th><th>From</th><th>To</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% all.forEach(sw => { %>
+            <tr>
+              <td class="mono"><%= sw.slot_date %></td>
+              <td><%= sw.project_name %></td>
+              <td><span class="pill <%= sw.kind %>"><%= KIND_LABELS[sw.kind] %></span></td>
+              <td><%= sw.from_name %></td>
+              <td><%= sw.to_name || '—' %></td>
+              <td><span class="pill <%= sw.status %>"><%= sw.status %></span></td>
+              <td>
+                <% if (sw.status === 'pending') { %>
+                  <form class="inline" method="post" action="/swaps/<%= sw.id %>/cancel"><button class="btn small danger" type="submit">Cancel</button></form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

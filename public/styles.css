@@ -763,6 +763,70 @@ a.oncall-contact:hover { color: var(--accent-ink); text-decoration: underline; }
 .handoff-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
 .handoff-name { font-weight: 600; color: var(--ink); font-size: 13.5px; }
 
+/* Post-login welcome splash */
+.welcome-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: #0a0d12;
+  transition: opacity 320ms var(--ease);
+}
+.welcome-wrap.welcome-out { opacity: 0; }
+.welcome-glow {
+  position: absolute;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 179, 167, 0.35), transparent 65%);
+  animation: welcomeGlowPulse 3.2s ease-in-out infinite;
+}
+.welcome-content { position: relative; display: flex; flex-direction: column; align-items: center; }
+.welcome-logo {
+  width: 168px;
+  height: auto;
+  border-radius: var(--radius-lg);
+  opacity: 0;
+  animation: welcomeLogoIn 900ms var(--ease) forwards;
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
+}
+.welcome-text { margin-top: 24px; text-align: center; opacity: 0; animation: welcomeTextIn 700ms var(--ease) forwards; animation-delay: 500ms; }
+.welcome-greeting { font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 22px; color: #f2f4f2; }
+.welcome-sub { margin-top: 4px; font-size: 13.5px; color: rgba(242, 244, 242, 0.55); }
+.welcome-skip {
+  position: absolute;
+  bottom: 28px;
+  right: 32px;
+  font-size: 12.5px;
+  color: rgba(242, 244, 242, 0.45);
+  text-decoration: none;
+  opacity: 0;
+  animation: welcomeTextIn 500ms var(--ease) forwards;
+  animation-delay: 1200ms;
+}
+.welcome-skip:hover { color: rgba(242, 244, 242, 0.85); }
+
+@keyframes welcomeLogoIn {
+  0% { opacity: 0; transform: scale(0.72) translateY(14px); }
+  65% { opacity: 1; transform: scale(1.06) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes welcomeTextIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes welcomeGlowPulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-logo, .welcome-text, .welcome-skip { animation: none; opacity: 1; }
+  .welcome-glow { animation: none; }
+}
+
 ::-webkit-scrollbar { width: 9px; height: 9px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }

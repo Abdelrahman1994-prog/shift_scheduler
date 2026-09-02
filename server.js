@@ -18,6 +18,7 @@ const swapRoutes = require('./src/routes/swaps');
 const settingsRoutes = require('./src/routes/settings');
 const profileRoutes = require('./src/routes/profile');
 const oncallRoutes = require('./src/routes/oncall');
+const welcomeRoutes = require('./src/routes/welcome');
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.use(swapRoutes);
 app.use(settingsRoutes);
 app.use(profileRoutes);
 app.use(oncallRoutes);
+app.use(welcomeRoutes);
 
 app.use((req, res) => {
   res.status(404).render('error', { message: 'Page not found.' });

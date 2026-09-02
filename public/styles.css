@@ -837,6 +837,12 @@ a.oncall-contact:hover { color: var(--accent-ink); text-decoration: underline; }
    Mobile: sidebar becomes an off-canvas drawer, top bar takes over
    --------------------------------------------------------------------- */
 @media (max-width: 900px) {
+  /* .app-shell is a row flex by default; .sidebar/.sidenav-overlay come out
+     of flow below (position: fixed), but .mobile-topbar and .main stay in
+     flow — without this they'd sit side by side instead of stacked,
+     squeezing .main into a sliver of the viewport. */
+  .app-shell { flex-direction: column; }
+
   .mobile-topbar { display: flex; }
 
   .sidebar {
@@ -851,7 +857,12 @@ a.oncall-contact:hover { color: var(--accent-ink); text-decoration: underline; }
   body.nav-open .sidebar { transform: translateX(0); }
   body.nav-open .sidenav-overlay { display: block; }
 
-  .main { padding: 18px 16px 48px; }
+  .main { padding: 18px 16px 48px; width: 100%; }
+
+  /* The decorative background clock is tuned for wide viewports (a subtle
+     corner accent); on a narrow/tall mobile screen "slice" scaling blows
+     it up to dominate the whole page instead. */
+  .bg-decor { display: none; }
 }
 
 /* ---------------------------------------------------------------------

@@ -1,4 +1,5 @@
 const express = require('express');
+const dayjs = require('dayjs');
 const db = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const scheduler = require('../scheduler');
@@ -30,6 +31,13 @@ function buildGrid(slots, dates) {
 router.get('/schedule', async (req, res) => {
   const weekStart = /^\d{4}-\d{2}-\d{2}$/.test(req.query.week || '') ? req.query.week : scheduler.weekStartFor();
   const dates = scheduler.weekDates(weekStart);
+  // Egypt's weekend is Friday/Saturday — same rule used everywhere else
+  // (leave-day counting, the leave board) — so the grid can tint those
+  // columns and label each header with its day name.
+  const dateMeta = dates.map((d) => {
+    const dow = dayjs(d).day();
+    return { date: d, dayName: dayjs(d).format('ddd'), isWeekend: dow === 5 || dow === 6 };
+  });
   const slots = await scheduler.listWeek(weekStart);
   const gapCount = slots.filter((s) => !s.assignee_id).length;
   const hasDraft = slots.some((s) => s.status === 'draft');
@@ -50,6 +58,7 @@ router.get('/schedule', async (req, res) => {
     active: 'schedule',
     weekStart,
     dates,
+    dateMeta,
     holidayMap,
     prevWeek: scheduler.addDays(weekStart, -7),
     nextWeek: scheduler.addDays(weekStart, 7),
@@ -182,6 +191,27 @@ router.post('/schedule/slot/create', requireAdmin, async (req, res) => {
   req.session.flash = warning
     ? { type: 'error', message: `Shift added, but left unfilled: ${warning}` }
     : { type: 'success', message: 'Shift added.' };
+  res.redirect(`/schedule?week=${weekStart}`);
+});
+
+// Copies one slot's project/kind/times/assignee onto every other weekday
+// (Sun–Thu) this week — a quick way to staff the rest of the week after
+// adding or eyeballing one day by hand.
+router.post('/schedule/slot/:id/copy-weekdays', requireAdmin, async (req, res) => {
+  const weekStart = req.body.week;
+  const slotId = Number(req.params.id);
+  const { copied, skipped, warnings } = await scheduler.copySlotToWeekdays(slotId);
+
+  const parts = [];
+  if (copied === 0 && skipped === 0) {
+    parts.push('Shift not found.');
+  } else {
+    parts.push(`Copied to ${copied} weekday${copied === 1 ? '' : 's'}.`);
+    if (skipped > 0) parts.push(`${skipped} already had a shift for this project/type and were left as-is.`);
+    if (warnings.length > 0) parts.push(`${warnings.length} left unfilled — ${warnings.join('; ')}.`);
+  }
+
+  req.session.flash = { type: warnings.length > 0 ? 'error' : 'success', message: parts.join(' ') };
   res.redirect(`/schedule?week=${weekStart}`);
 });
 

@@ -133,17 +133,17 @@
   <div class="table-wrap" style="overflow-x:auto;">
     <div class="sched-grid" style="min-width:960px;">
       <div class="sched-head"></div>
-      <% dates.forEach(d => { %>
-        <div class="sched-head">
-          <%= d %>
-          <% if (holidayMap[d]) { %><span class="pill lead" style="margin-left:4px;" title="<%= holidayMap[d] %>">holiday</span><% } %>
+      <% dateMeta.forEach(dm => { %>
+        <div class="sched-head<%= dm.isWeekend ? ' weekend' : '' %>">
+          <%= dm.date %> <span class="day-name"><%= dm.dayName %></span>
+          <% if (holidayMap[dm.date]) { %><span class="pill lead" style="margin-left:4px;" title="<%= holidayMap[dm.date] %>">holiday</span><% } %>
         </div>
       <% }) %>
 
       <% grid.forEach(row => { %>
         <div class="sched-project"><%= row.project.name %></div>
-        <% row.days.forEach(daySlots => { %>
-          <div>
+        <% row.days.forEach((daySlots, i) => { %>
+          <div class="<%= dateMeta[i].isWeekend ? 'weekend' : '' %>">
             <% daySlots.forEach(s => { %>
               <div class="slot-chip <%= s.assignee_id ? s.kind : 'gap' %>" title="<%= KIND_LABELS[s.kind] %> · <%= s.start_time %>–<%= s.end_time %><%= s.note ? ' — ' + s.note : '' %>">
                 <span class="meta"><%- KIND_ICON[s.kind] %><span><%= KIND_LABELS[s.kind] %> · <%= s.start_time %>–<%= s.end_time %></span></span>
@@ -159,6 +159,13 @@
                           <option value="<%= m.id %>" <%= s.assignee_id === m.id ? 'selected' : '' %>><%= m.name %></option>
                         <% }) %>
                       </select>
+                    </form>
+                    <form method="post" action="/schedule/slot/<%= s.id %>/copy-weekdays" class="inline"
+                          onsubmit="return confirm('Copy this shift (same project, type, time, and assignee) to every other weekday (Sun–Thu) this week? Days that already have a shift for this project/type are left alone.')">
+                      <input type="hidden" name="week" value="<%= weekStart %>">
+                      <button class="btn small" type="submit" title="Copy to all weekdays" style="padding:2px 6px;font-size:11px;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>
+                      </button>
                     </form>
                     <form method="post" action="/schedule/slot/<%= s.id %>/delete" class="inline"
                           onsubmit="return confirm(<%- s.status === 'published' ? "'This shift is already published and may have been communicated to the team. Remove it anyway?'" : "'Remove this shift?'" %>)">

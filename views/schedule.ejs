@@ -161,7 +161,7 @@
                       </select>
                     </form>
                     <form method="post" action="/schedule/slot/<%= s.id %>/copy-weekdays" class="inline"
-                          onsubmit="return confirm('Copy this shift (same project, type, time, and assignee) to every other weekday (Sun–Thu) this week? Days that already have a shift for this project/type are left alone.')">
+                          onsubmit="return confirm('Copy this shift (same project, type, time, and assignee) to every other weekday (Sun–Thu) this week? Days where this assignee already has this shift are left alone.')">
                       <input type="hidden" name="week" value="<%= weekStart %>">
                       <button class="btn small" type="submit" title="Copy to all weekdays" style="padding:2px 6px;font-size:11px;">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/></svg>

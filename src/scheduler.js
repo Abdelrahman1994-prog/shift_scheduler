@@ -422,12 +422,15 @@ async function createManualSlot({ project_id, kind, slot_date, start_time, end_t
 }
 
 // Replicates one slot's project/kind/times/assignee onto every other
-// weekday (Sun–Thu — Egypt's work week) in the same week. A weekday that
-// already has a slot for the same project + kind is left alone rather than
-// getting a second, so clicking this more than once doesn't pile up
-// duplicates. Runs each new slot through the same eligibility check as a
-// manual add, so leave/rest conflicts still show up as unfilled + a note
-// instead of silently double-booking someone.
+// weekday (Sun–Thu — Egypt's work week) in the same week. A weekday where
+// this *same assignee* already has a slot for the project + kind is left
+// alone rather than getting a second, so clicking this more than once
+// doesn't pile up duplicates — but a project that needs several people
+// per day (min_staff_day > 1) can still have each of them copied
+// independently, since a different assignee isn't a duplicate. Runs each
+// new slot through the same eligibility check as a manual add, so
+// leave/rest conflicts still show up as unfilled + a note instead of
+// silently double-booking someone.
 async function copySlotToWeekdays(slotId) {
   const { rows } = await db.query('SELECT * FROM shift_slots WHERE id = $1', [slotId]);
   const source = rows[0];
@@ -444,8 +447,10 @@ async function copySlotToWeekdays(slotId) {
 
   for (const date of targetDates) {
     const { rows: existing } = await db.query(
-      'SELECT 1 FROM shift_slots WHERE project_id = $1 AND kind = $2 AND slot_date = $3',
-      [source.project_id, source.kind, date]
+      // IS NOT DISTINCT FROM (rather than =) so an unfilled source
+      // (assignee_id null) correctly matches an existing unfilled slot too.
+      'SELECT 1 FROM shift_slots WHERE project_id = $1 AND kind = $2 AND slot_date = $3 AND assignee_id IS NOT DISTINCT FROM $4',
+      [source.project_id, source.kind, date, source.assignee_id]
     );
     if (existing.length > 0) {
       skipped++;

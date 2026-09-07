@@ -207,7 +207,7 @@ router.post('/schedule/slot/:id/copy-weekdays', requireAdmin, async (req, res) =
     parts.push('Shift not found.');
   } else {
     parts.push(`Copied to ${copied} weekday${copied === 1 ? '' : 's'}.`);
-    if (skipped > 0) parts.push(`${skipped} already had a shift for this project/type and were left as-is.`);
+    if (skipped > 0) parts.push(`${skipped} already had this assignee on this project/type and were left as-is.`);
     if (warnings.length > 0) parts.push(`${warnings.length} left unfilled — ${warnings.join('; ')}.`);
   }
 

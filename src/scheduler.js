@@ -421,6 +421,53 @@ async function createManualSlot({ project_id, kind, slot_date, start_time, end_t
   });
 }
 
+// Replicates one slot's project/kind/times/assignee onto every other
+// weekday (Sun–Thu — Egypt's work week) in the same week. A weekday that
+// already has a slot for the same project + kind is left alone rather than
+// getting a second, so clicking this more than once doesn't pile up
+// duplicates. Runs each new slot through the same eligibility check as a
+// manual add, so leave/rest conflicts still show up as unfilled + a note
+// instead of silently double-booking someone.
+async function copySlotToWeekdays(slotId) {
+  const { rows } = await db.query('SELECT * FROM shift_slots WHERE id = $1', [slotId]);
+  const source = rows[0];
+  if (!source) return { copied: 0, skipped: 0, warnings: [] };
+
+  const targetDates = weekDates(source.week_start).filter((d) => {
+    const dow = dayjs(d).day();
+    return dow !== 5 && dow !== 6 && d !== source.slot_date;
+  });
+
+  let copied = 0;
+  let skipped = 0;
+  const warnings = [];
+
+  for (const date of targetDates) {
+    const { rows: existing } = await db.query(
+      'SELECT 1 FROM shift_slots WHERE project_id = $1 AND kind = $2 AND slot_date = $3',
+      [source.project_id, source.kind, date]
+    );
+    if (existing.length > 0) {
+      skipped++;
+      continue;
+    }
+
+    const { warning } = await createManualSlot({
+      project_id: source.project_id,
+      kind: source.kind,
+      slot_date: date,
+      start_time: source.start_time,
+      end_time: source.end_time,
+      assignee_id: source.assignee_id,
+      week_start: source.week_start
+    });
+    copied++;
+    if (warning) warnings.push(`${date}: ${warning}`);
+  }
+
+  return { copied, skipped, warnings };
+}
+
 // Removing a slot also removes any swap requests tied to it via
 // shift_slots -> swap_requests ON DELETE CASCADE.
 async function deleteSlot(slotId) {
@@ -530,6 +577,7 @@ module.exports = {
   listWeek,
   checkAssignmentValidity,
   createManualSlot,
+  copySlotToWeekdays,
   deleteSlot,
   deleteDraft,
   deleteWeek,
